@@ -26,7 +26,7 @@ else:
 
     # -- 1. Dividend Amount Per Quarter --
     st.subheader("1. Dividend Amount Per Quarter")
-    per_quarter = dividends_df.groupby('Quarter').sum().reset_index()
+    per_quarter = dividends_df.groupby('Quarter')['Dividend'].sum().reset_index()
 
     fig1, ax1 = plt.subplots(figsize=(12, 5))
     ax1.plot(per_quarter['Quarter'], per_quarter['Dividend'], marker='o', label=ticker)
