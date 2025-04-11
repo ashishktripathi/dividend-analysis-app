@@ -3,6 +3,7 @@ import yfinance as yf
 import pandas as pd
 import matplotlib.pyplot as plt
 
+# Page setup
 st.set_page_config(layout="wide")
 st.title("📈 Dividend Analysis Dashboard")
 
@@ -17,15 +18,15 @@ history = stock.history(period="max")
 if dividends.empty:
     st.warning("No dividend data found for this ticker.")
 else:
+    # Preprocess Dividends Data
     dividends_df = dividends.reset_index()
     dividends_df.columns = ['Date', 'Dividend']
     dividends_df['Year'] = dividends_df['Date'].dt.year
-    dividends_df['Quarter'] = dividends_df['Date'].dt.to_period('Q')
+    dividends_df['Quarter'] = dividends_df['Date'].dt.to_period('Q').astype(str)
 
     # -- 1. Dividend Amount Per Quarter --
     st.subheader("1. Dividend Amount Per Quarter")
     per_quarter = dividends_df.groupby('Quarter').sum().reset_index()
-    per_quarter['Quarter'] = per_quarter['Quarter'].astype(str)
 
     fig1, ax1 = plt.subplots(figsize=(12, 5))
     ax1.plot(per_quarter['Quarter'], per_quarter['Dividend'], marker='o', label=ticker)
@@ -48,7 +49,7 @@ else:
     ax2.legend()
     st.pyplot(fig2)
 
-    # -- 3. Amount of Dividend Paid Per Year --
+    # -- 3. Total Dividend Paid Per Year --
     st.subheader("3. Total Dividend Paid Per Year")
     total_yearly_div = dividends_df.groupby('Year')['Dividend'].sum()
 
@@ -62,17 +63,20 @@ else:
 
 # -- 4. Closing Price for the Last 10–15 Years --
 st.subheader("4. Closing Price (Historical)")
-history_filtered = history[['Close']].copy()
-history_filtered['Date'] = history_filtered.index
+if history.empty:
+    st.warning("No historical price data found.")
+else:
+    history_filtered = history[['Close']].copy()
+    history_filtered['Date'] = history_filtered.index
 
-fig4, ax4 = plt.subplots(figsize=(14, 5))
-ax4.plot(history_filtered['Date'], history_filtered['Close'], color='blue', label=f"{ticker} Closing Price")
-avg = history_filtered['Close'].mean()
-med = history_filtered['Close'].median()
-ax4.axhline(avg, linestyle='--', color='green', label=f"Average: {avg:.2f}")
-ax4.axhline(med, linestyle='--', color='orange', label=f"Median: {med:.2f}")
-ax4.set_title(f"Closing Price for {ticker} Over Time")
-ax4.set_ylabel("Closing Price (CAD)")
-ax4.set_xlabel("Date")
-ax4.legend()
-st.pyplot(fig4)
+    fig4, ax4 = plt.subplots(figsize=(14, 5))
+    ax4.plot(history_filtered['Date'], history_filtered['Close'], color='blue', label=f"{ticker} Closing Price")
+    avg = history_filtered['Close'].mean()
+    med = history_filtered['Close'].median()
+    ax4.axhline(avg, linestyle='--', color='green', label=f"Average: {avg:.2f}")
+    ax4.axhline(med, linestyle='--', color='orange', label=f"Median: {med:.2f}")
+    ax4.set_title(f"Closing Price for {ticker} Over Time")
+    ax4.set_ylabel("Closing Price (CAD)")
+    ax4.set_xlabel("Date")
+    ax4.legend()
+    st.pyplot(fig4)
