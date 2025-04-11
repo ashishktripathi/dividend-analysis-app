@@ -1,82 +1,62 @@
 import streamlit as st
 import yfinance as yf
 import pandas as pd
-import matplotlib.pyplot as plt
+import plotly.express as px
 
 # Page setup
 st.set_page_config(layout="wide")
 st.title("📈 Dividend Analysis Dashboard")
 
-# --- Sidebar for Stock Selection ---
+# Sidebar
 ticker = st.sidebar.text_input("Enter Stock Ticker (e.g., CJ.TO)", "CJ.TO")
 stock = yf.Ticker(ticker)
 
-# --- Fetch Historical Data ---
+# Fetch data
 dividends = stock.dividends
 history = stock.history(period="max")
 
 if dividends.empty:
     st.warning("No dividend data found for this ticker.")
 else:
-    # Preprocess Dividends Data
+    # Preprocess dividend data
     dividends_df = dividends.reset_index()
     dividends_df.columns = ['Date', 'Dividend']
     dividends_df['Year'] = dividends_df['Date'].dt.year
     dividends_df['Quarter'] = dividends_df['Date'].dt.to_period('Q').astype(str)
 
-    # -- 1. Dividend Amount Per Quarter --
+    # 1. Dividend Amount Per Quarter
     st.subheader("1. Dividend Amount Per Quarter")
     per_quarter = dividends_df.groupby('Quarter')['Dividend'].sum().reset_index()
+    fig1 = px.line(per_quarter, x='Quarter', y='Dividend', markers=True,
+                   title=f"Dividend Amount Paid Per Quarter for {ticker}")
+    st.plotly_chart(fig1, use_container_width=True)
 
-    fig1, ax1 = plt.subplots(figsize=(12, 5))
-    ax1.plot(per_quarter['Quarter'], per_quarter['Dividend'], marker='o', label=ticker)
-    ax1.set_title(f"Dividend Amount paid per quarter for {ticker}")
-    ax1.set_xlabel("Quarter")
-    ax1.set_ylabel("Dividend Paid")
-    plt.xticks(rotation=90)
-    ax1.legend()
-    st.pyplot(fig1)
-
-    # -- 2. Number of Times Dividend Paid Per Year --
+    # 2. Number of Times Dividend Paid Per Year
     st.subheader("2. Number of Times Dividend Paid Per Year")
-    monthly_dividends = dividends_df.groupby('Year')['Date'].count()
+    count_per_year = dividends_df.groupby('Year')['Date'].count().reset_index()
+    count_per_year.columns = ['Year', 'Payments']
+    fig2 = px.line(count_per_year, x='Year', y='Payments', markers=True,
+                   title="Number of Dividend Payments Per Year")
+    st.plotly_chart(fig2, use_container_width=True)
 
-    fig2, ax2 = plt.subplots()
-    ax2.plot(monthly_dividends.index, monthly_dividends.values, marker='o', label=f"{ticker} - Consistency")
-    ax2.set_title("Number of times Dividend paid per year")
-    ax2.set_ylabel("Months Dividends Paid")
-    ax2.set_xlabel("Year")
-    ax2.legend()
-    st.pyplot(fig2)
-
-    # -- 3. Total Dividend Paid Per Year --
+    # 3. Total Dividend Paid Per Year
     st.subheader("3. Total Dividend Paid Per Year")
-    total_yearly_div = dividends_df.groupby('Year')['Dividend'].sum()
+    total_per_year = dividends_df.groupby('Year')['Dividend'].sum().reset_index()
+    fig3 = px.line(total_per_year, x='Year', y='Dividend', markers=True,
+                   title="Total Dividend Paid Per Year")
+    st.plotly_chart(fig3, use_container_width=True)
 
-    fig3, ax3 = plt.subplots()
-    ax3.plot(total_yearly_div.index, total_yearly_div.values, marker='o', label=f"{ticker} - Total Dividend")
-    ax3.set_title("Amount of Dividend paid per year")
-    ax3.set_ylabel("Total Dividend Paid")
-    ax3.set_xlabel("Year")
-    ax3.legend()
-    st.pyplot(fig3)
-
-# -- 4. Closing Price for the Last 10–15 Years --
-st.subheader("4. Closing Price (Historical)")
+# 4. Historical Closing Price
+st.subheader("4. Closing Price History")
 if history.empty:
     st.warning("No historical price data found.")
 else:
-    history_filtered = history[['Close']].copy()
-    history_filtered['Date'] = history_filtered.index
+    price_df = history[['Close']].reset_index()
+    price_df['Year'] = price_df['Date'].dt.year
+    avg = price_df['Close'].mean()
+    med = price_df['Close'].median()
 
-    fig4, ax4 = plt.subplots(figsize=(14, 5))
-    ax4.plot(history_filtered['Date'], history_filtered['Close'], color='blue', label=f"{ticker} Closing Price")
-    avg = history_filtered['Close'].mean()
-    med = history_filtered['Close'].median()
-    ax4.axhline(avg, linestyle='--', color='green', label=f"Average: {avg:.2f}")
-    ax4.axhline(med, linestyle='--', color='orange', label=f"Median: {med:.2f}")
-    ax4.set_title(f"Closing Price for {ticker} Over Time")
-    ax4.set_ylabel("Closing Price (CAD)")
-    ax4.set_xlabel("Date")
-    ax4.legend()
-    st.pyplot(fig4)
+    fig4 = px.line(price_df, x='Date', y='Close', title=f"{ticker} Historical Closing Prices")
+    fig4.add_hline(y=avg, line_dash="dash", line_color="green", annotation_text=f"Avg: {avg:.2f}")
+    fig4.add_hline(y=med, line_dash="dash", line_color="orange", annotation_text=f"Med: {med:.2f}")
+    st.plotly_chart(fig4, use_container_width=True)
